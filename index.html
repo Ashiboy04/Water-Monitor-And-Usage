@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Monitoring System</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+</head>
+<body class="theme-light">
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <header class="dashboard-header">
+            <div class="system-info">
+                <div class="info-item">
+                    <i class="fas fa-clock"></i>
+                    <span id="currentTime">{{ current_time }}</span>
+                </div>
+                <div class="info-item">
+                    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                        <i class="fas fa-sun light-icon"></i>
+                        <i class="fas fa-moon dark-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Panel -->
+        <nav class="nav-panel">
+            <a href="#main" class="nav-item" data-tab="main">
+                <i class="material-icons">dashboard</i> 
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="#historical" class="nav-item" data-tab="historical">
+                <i class="material-icons">history</i>
+                <span class="nav-label">Historical</span>
+            </a>
+            <a href="#alerts" class="nav-item" data-tab="alerts">
+                <i class="fas fa-bell"></i>
+                <span class="nav-label">Alerts</span>
+            </a>
+            <a href="#config" class="nav-item" data-tab="config">
+                <i class="material-icons">settings</i>
+                <span class="nav-label">Config</span>
+            </a>
+            <a href="#firmware" class="nav-item" data-tab="firmware">
+                <i class="material-icons">system_update_alt</i>
+                <span class="nav-label">Firmware</span>
+            </a>
+        </nav>
+
+        <div class="content">
+            <!-- Tab Content -->
+            <div class="dashboard-content">
+                <!-- Main Dashboard Tab -->
+                <section class="tab-pane active" id="main">
+                    <div class="dashboard-grid">
+                        <!-- Water Level Widget -->
+                        <div class="dashboard-card water-level-widget">
+                            <div class="card-header">
+                                <h2><i class="fas fa-water"></i> Water Level</h2>
+                                <div class="header-controls">
+                                    <button class="btn btn-danger" id="eraseDataBtn">
+                                        <i class="fas fa-eraser"></i> Erase Data
+                                    </button>
+                                    <div class="status-indicator" id="waterLevelStatus"></div>
+                                </div>
+                            </div>
+                            <div class="water-level-content">
+                                <div class="water-tank">
+                                    <div class="water-fill" id="waterFill"></div>
+                                    <div class="water-marks">
+                                        <div class="mark" style="bottom: 75%">75%</div>
+                                        <div class="mark" style="bottom: 50%">50%</div>
+                                        <div class="mark" style="bottom: 25%">25%</div>
+                                    </div>
+                                </div>
+                                <div class="water-info">
+                                    <div class="info-box">
+                                        <span class="label">Level:</span>
+                                        <span class="value" id="waterLevelValue">--%</span>
+                                    </div>
+                                    <div class="info-box">
+                                        <span class="label">Volume:</span>
+                                        <span class="value" id="waterVolume">-- L</span>
+                                    </div>
+                                    <div class="info-box">
+                                        <span class="label">Last Update:</span>
+                                        <span class="value" id="lastUpdate">--:--:--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weather Widget -->
+                        <div class="dashboard-card weather-widget">
+                            <div class="card-header">
+                                <h2><i class="fas fa-cloud"></i> Weather - <span id="weatherLocation">Loading...</span></h2>
+                                <div class="status-indicator" id="weatherStatus"></div>
+                            </div>
+                            <div class="weather-content" id="weatherContent">
+                                <!-- Weather data will be dynamically added here -->
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Widget -->
+                        <div class="dashboard-card stats-widget">
+                            <div class="card-header">
+                                <h2><i class="fas fa-chart-pie"></i> Quick Stats</h2>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-tint"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Daily Usage</span>
+                                        <span class="stat-value" id="dailyUsage">-- L</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Weekly Avg</span>
+                                        <span class="stat-value" id="weeklyAvg">-- L</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-fill"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Last Refill</span>
+                                        <span class="stat-value" id="lastRefill">--:--</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Peak Usage Day</span>
+                                        <span class="stat-value" id="peakUsageDay">--</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-water"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Total Weekly Usage</span>
+                                        <span class="stat-value" id="totalWeeklyUsage">-- L</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Average Daily Usage</span>
+                                        <span class="stat-value" id="avgDailyUsage">-- L</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Historical Data Tab -->
+                <section class="tab-pane" id="historical">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-history"></i> Historical Data</h2>
+                            <div class="time-range">
+                                <select id="timeRange" class="material-select">
+                                    <option value="24">Last 24 Hours</option>
+                                    <option value="48">Last 48 Hours</option>
+                                    <option value="72">Last 3 Days</option>
+                                    <option value="168">Last Week</option>
+                                    <option value="720">Last Month</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="historicalChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alerts Tab -->
+                <section class="tab-pane" id="alerts">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-bell"></i> System Logs</h2>
+                            <div class="alert-controls">
+                                <button class="btn" id="refreshAlerts">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="alerts-container" id="alertsContainer">
+                            <!-- Alerts will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Configuration Tab -->
+                <section class="tab-pane" id="config">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-cogs"></i> Network Configuration</h2>
+                        </div>
+                        <div class="config-content">
+                            <div class="config-form-container">
+                                <form id="configForm">
+                                    <div class="form-group">
+                                        <label for="wifi_ssid">Home Network SSID</label>
+                                        <input type="text" id="wifi_ssid" name="wifi_ssid" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="wifi_password">Home Network Password</label>
+                                        <input type="password" id="wifi_password" name="wifi_password" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fast_data">Fast Data Mode</label>
+                                        <input type="checkbox" id="fast_data" name="fast_data">
+                                        <small>Enable for more frequent updates (higher power consumption)</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Configuration</button>
+                                </form>
+                            </div>
+                            <div class="current-config-container">
+                                <h3>Current Configuration</h3>
+                                <pre id="currentConfig"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Firmware Tab -->
+                <section class="tab-pane" id="firmware">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-upload"></i> Firmware Management</h2>
+                        </div>
+                        <div class="firmware-content">
+                            <form id="firmwareForm" enctype="multipart/form-data">
+                                <div class="form-group">
+                                    <label for="firmwareFile">Upload New Firmware (.bin)</label>
+                                    <input type="file" id="firmwareFile" name="firmware" accept=".bin" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Upload Firmware</button>
+                            </form>
+                            
+                            <div class="firmware-status">
+                                <h3>Current Firmware</h3>
+                                <div id="currentFirmware">
+                                    <p>Status: <span id="firmwareExists">Checking...</span></p>
+                                    <p>Size: <span id="firmwareSize">--</span></p>
+                                    <p>Last Modified: <span id="firmwareModified">--</span></p>
+                                    <button id="removeFirmware" class="btn btn-danger" style="display: none;">
+                                        <i class="fas fa-trash"></i> Remove Firmware
+                                    </button>
+                                </div>
+                                <hr>
+                                <h3>Access Status</h3>
+                                <p>Last Config Fetch: <span id="lastConfigFetch">Never</span></p>
+                                <p>Last Firmware Fetch: <span id="lastFirmwareFetch">Never</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-content">
+                <span>Water Monitoring System v1.0</span>
+                <span id="footerTime">{{ current_time }}</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateDashboard(); // Fetch and update data immediately on page load
+
+            // Add event listeners for buttons
+            document.getElementById('eraseDataBtn').addEventListener('click', async () => {
+                await eraseData();
+            });
+
+            document.getElementById('clearLogs').addEventListener('click', () => {
+                clearLogs();
+            });
+
+            const deepSleepCheckbox = document.getElementById('deep_sleep_enabled');
+            const updateFrequencyInput = document.getElementById('update_frequency');
+
+            function toggleUpdateFrequency() {
+                if (deepSleepCheckbox.checked) {
+                    updateFrequencyInput.disabled = true;
+                } else {
+                    updateFrequencyInput.disabled = false;
+                }
+            }
+
+            deepSleepCheckbox.addEventListener('change', toggleUpdateFrequency);
+            toggleUpdateFrequency(); // Initial check
+
+            // Handle navigation
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (item.getAttribute('href').startsWith('/')) {
+                        return; // Allow default navigation for external links
+                    }
+                    e.preventDefault();
+                    const targetTab = item.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-pane').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    document.getElementById(targetTab).classList.add('active');
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+
+            // Fetch and display saved configuration data
+            async function fetchConfigData() {
+                try {
+                    const response = await fetch('/api/config');
+                    const data = await response.json();
+                    document.getElementById('wifi_ssid').value = data.wifi_ssid || '';
+                    document.getElementById('wifi_password').value = data.wifi_password || '';
+                    document.getElementById('fast_data').checked = data.fast_data || false;
+                    document.getElementById('currentConfig').textContent = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    console.error('Error fetching config data:', error);
+                }
+            }
+
+            fetchConfigData(); // Initial fetch on page load
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial active tab based on hash or default to main
+            const hash = window.location.hash || '#main';
+            const initialTab = document.querySelector(`[href="${hash}"]`);
+            if (initialTab) {
+                initialTab.classList.add('active');
+                document.querySelector(hash).classList.add('active');
+            }
+
+            // Handle navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = item.getAttribute('href');
+                    const targetTab = item.getAttribute('data-tab');
+
+                    // Update navigation items
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Update tab panes
+                    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                    document.querySelector(targetId).classList.add('active');
+
+                    // Update URL hash without scrolling
+                    history.pushState(null, null, targetId);
+                });
+            });
+        });
+
+        // Add fetch status check function
+        async function updateFetchStatus() {
+            try {
+                const response = await fetch('/api/fetch-status');
+                const data = await response.json();
+                
+                const lastConfigFetch = document.getElementById('lastConfigFetch');
+                const lastFirmwareFetch = document.getElementById('lastFirmwareFetch');
+                
+                lastConfigFetch.textContent = data.last_config_fetch || 'Never';
+                lastFirmwareFetch.textContent = data.last_firmware_fetch || 'Never';
+
+                // Add a title attribute to show full timestamp on hover
+                if (data.last_config_fetch) {
+                    lastConfigFetch.title = data.last_config_fetch;
+                }
+                if (data.last_firmware_fetch) {
+                    lastFirmwareFetch.title = data.last_firmware_fetch;
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+
+        // Add to your initialization code
+        document.addEventListener('DOMContentLoaded', () => {
+            // ...existing initialization code...
+            
+            // Update fetch status every 30 seconds
+            updateFetchStatus();
+            setInterval(updateFetchStatus, 30000);
+        });
+
+        // Add these functions after other JavaScript
+        async function updateFirmwareStatus() {
+            try {
+                const response = await fetch('/api/firmware/status');
+                const data = await response.json();
+                
+                document.getElementById('firmwareExists').textContent = data.exists ? 'Installed' : 'Not Installed';
+                document.getElementById('firmwareSize').textContent = data.exists ? formatFileSize(data.size) : '--';
+                document.getElementById('firmwareModified').textContent = data.exists ? data.last_modified : '--';
+                document.getElementById('removeFirmware').style.display = data.exists ? 'block' : 'none';
+            } catch (error) {
+                console.error('Error checking firmware status:', error);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // Add event listener for remove button
+        document.getElementById('removeFirmware').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to remove the current firmware?')) return;
+            
+            try {
+                const response = await fetch('/api/firmware/remove', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('success', 'Firmware removed successfully');
+                    updateFirmwareStatus();
+                } else {
+                    showAlert('error', data.error || 'Failed to remove firmware');
+                }
+            } catch (error) {
+                showAlert('error', 'Failed to remove firmware');
+                console.error('Error removing firmware:', error);
+            }
+        });
+
+        // Add to your initialization code
+        document.addEventListener('DOMContentLoaded', () => {
+            // ...existing initialization code...
+            
+            // Initial firmware status check
+            updateFirmwareStatus();
+            // Check firmware status every 30 seconds
+            setInterval(updateFirmwareStatus, 30000);
+        });
+
+        // Add this to your existing code near the configForm submit handler
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+        // ...existing initialization code...
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const configData = {
+                wifi_ssid: formData.get('wifi_ssid'),
+                wifi_password: formData.get('wifi_password'),
+                fast_data: formData.get('fast_data') === 'on'
+            };
+
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (!response.ok) throw new Error('Failed to save configuration');
+                
+                const result = await response.json();
+                showAlert('success', 'Configuration saved successfully');
+                
+                // Refresh the displayed configuration
+                await fetchConfigData();
+            } catch (error) {
+                console.error('Error saving configuration:', error);
+                showAlert('error', 'Failed to save configuration');
+            }
+        });
+    </script>
+
+    <!-- ...existing code... -->
+
+    <script>
+        // Move fetchConfigData function definition to the top
+        async function fetchConfigData() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Failed to fetch config');
+                
+                const data = await response.json();
+                
+                // Update form fields and display
+                document.getElementById('wifi_ssid').value = data.wifi_ssid || '';
+                document.getElementById('wifi_password').value = data.wifi_password || '';
+                document.getElementById('fast_data').checked = data.fast_data || false;
+                document.getElementById('currentConfig').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                console.error('Error fetching config data:', error);
+                showAlert('error', 'Failed to load configuration data');
+            }
+        }
+
+        // Update the navigation event listener
+        document.addEventListener('DOMContentLoaded', () => {
+            // Handle navigation and tab switching
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const targetId = item.getAttribute('href');
+                    const targetTab = item.getAttribute('data-tab');
+
+                    // Update navigation items
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Update tab panes
+                    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                    document.querySelector(targetId).classList.add('active');
+
+                    // Fetch config data when config tab is selected
+                    if (targetTab === 'config') {
+                        await fetchConfigData();
+                    }
+
+                    // Update URL hash without scrolling
+                    history.pushState(null, null, targetId);
+                });
+            });
+
+            // Check if config tab is active on page load
+            const hash = window.location.hash;
+            if (hash === '#config') {
+                fetchConfigData();
+            }
+        });
+    </script>
+
+    <!-- ...rest of existing code... -->
+</body>
+</html>
